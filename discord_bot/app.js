@@ -1,4 +1,4 @@
-var prefix = "%uname_test"
+var prefix = "~uname_test"
 
 const Discord = require('discord.js');
 const client = new Discord.Client();
@@ -11,11 +11,13 @@ client.on('ready',() => {
 client.on('message', message => {
 	if (message.author === client.user) return;
 	if (message.content.startsWith(prefix)) {
+		console.log('Got a message for me: '+message.content);
 		var cmnd_array = message.content.split(" ");
 		message.guild.channels.forEach(function(channel){
 			if ( channel.name === cmnd_array[1] && channel.type === "voice" ){
 				var yes = [];
                                 var no = [];
+				var no2 = [];
 
 				channel.members.forEach(function(member){
 					name = "";
@@ -36,8 +38,22 @@ client.on('message', message => {
 						no.push(name);
 					}
 				})
-				message.channel.sendMessage('Playes found    : '+yes)
-				message.channel.sendMessage('Players not found: '+no)
+				cmnd_array.slice(2).forEach(function(name_g){
+					found = false;
+					yes.forEach(function(name_on){
+						if (name_g === name_on){
+                                                        found = true;
+                                                }
+					})
+					if(found){
+						
+					}else{
+						no2.push(name_g);
+					}
+				})
+				message.channel.sendMessage('Playes found    : '+yes);
+				message.channel.sendMessage('Unknown Discord nicknames: '+no);
+				message.channel.sendMessage('Unknown Ingame players: '+no2);
 			}
 		})
 	}

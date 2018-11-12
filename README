@@ -1,0 +1,7 @@
+To run the node server update the discord/settings.json with the bot token from discord.
+install the following packages:
+sudo apt install -y docker.io docker-compose make
+
+to run the bot run the following command in the discord_bot folder
+
+
