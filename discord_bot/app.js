@@ -51,9 +51,9 @@ client.on('message', message => {
 						no2.push(name_g);
 					}
 				})
-				message.channel.sendMessage('Playes found    : '+yes);
-				message.channel.sendMessage('Unknown Discord nicknames: '+no);
-				message.channel.sendMessage('Unknown Ingame players: '+no2);
+				message.channel.sendMessage('Playes found ('+yes.length+'): '+yes);
+				message.channel.sendMessage('Unknown Discord nicknames('+no.length+'): '+no);
+				message.channel.sendMessage('Unknown Ingame players:('+no2.length+')'+no2);
 			}
 		})
 	}
