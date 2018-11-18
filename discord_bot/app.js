@@ -8,8 +8,6 @@ const removeDiacritics = require('diacritics').remove;
 client.on('ready',() => {
 	console.log('Bot started');
 });
-//console.log(removeDiacritics("ZZZ(Sahzz)".toLowerCase()).includes(removeDiacritics("Sahzz".toLowerCase())))
-//console.log("ZDD(Sahzz)".includes("Sahzz"))
 
 client.on('message', message => {
 	if (message.author === client.user) return;
@@ -33,9 +31,8 @@ client.on('message', message => {
 						name = member.nickname;
 					}
 					cmnd_array.slice(2).forEach(function(name_g){
-						if (removeDiacritics(name.toLowerCase()).includes(removeDiacritics(name_g.toLowerCase()))){
+						if (removeDiacritics(name.toLowerCase()) === removeDiacritics(name_g.toLowerCase())){
 							found = true;
-							name = name_g;
 						}
 					})
 					if(found){
