@@ -15,10 +15,10 @@ arg1="${1:-}"
 
 # Installing requirements for VirtualBox & Docker
 sudo apt update
-sudo apt upgrade
-sudo apt dist-upgrade
+sudo apt -y upgrade
+sudo apt -y dist-upgrade
 
-sudo apt install build-essential linux-headers-$(uname -r) dkms apt-transport-https ca-certificates curl software-properties-common
+sudo apt install -y build-essential linux-headers-$(uname -r) dkms apt-transport-https ca-certificates curl software-properties-common git make
 
 echo "If you are running on virtual-box, install the virtual box tool now."
 read -p "Press enter to continue"
@@ -29,10 +29,14 @@ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 sudo apt-key fingerprint 0EBFCD88
 sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
 sudo apt update
-sudo apt upgrade
-sudo apt install docker-ce docker-compose
+sudo apt -y upgrade
+sudo apt -y install docker-ce docker-compose
 
 # Allow Docker whitout sudo for current user
 sudo usermod -aG docker $USER
 
+#Download Software
+git clone https://github.com/Sahzz/discord-raid-manager.git ~/
 
+# Run Software
+make start ~/discord-raid-manager/discord_bot
