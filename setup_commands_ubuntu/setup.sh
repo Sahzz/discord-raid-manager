@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# Only works with Ubuntu 18.4
+
 
 set -o errexit
 set -o pipefail
