@@ -38,7 +38,7 @@ sudo apt -y install docker-ce docker-compose
 sudo usermod -aG docker $USER
 
 #Download Software
-git clone https://github.com/Sahzz/discord-raid-manager.git ~/
+git clone https://github.com/Sahzz/discord-raid-manager.git ~/discord-raid-manager
 
 echo "Please add your api-key to the settings.json"
 read -p "Press enter to continue"
