@@ -20,7 +20,7 @@ sudo apt update
 sudo apt -y upgrade
 sudo apt -y dist-upgrade
 
-sudo apt install -y build-essential linux-headers-$(uname -r) dkms apt-transport-https ca-certificates curl software-properties-common git make
+sudo apt install -y build-essential linux-headers-$(uname -r) dkms apt-transport-https ca-certificates curl software-properties-common git make vim
 
 echo "If you are running on virtual-box, install the virtual box tool now."
 read -p "Press enter to continue"
@@ -39,6 +39,10 @@ sudo usermod -aG docker $USER
 
 #Download Software
 git clone https://github.com/Sahzz/discord-raid-manager.git ~/
+
+echo "Please add your api-key to the settings.json"
+read -p "Press enter to continue"
+vim ~/discord-raid-manager/discord_bot/settings.json
 
 # Run Software
 make start ~/discord-raid-manager/discord_bot
