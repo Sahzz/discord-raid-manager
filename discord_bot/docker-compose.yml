@@ -2,3 +2,4 @@ version: '3'
 services:
   discord-bot:
     build: .
+    restart: always

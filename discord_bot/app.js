@@ -44,7 +44,8 @@ client.on('message', message => {
 				cmnd_array.slice(2).forEach(function(name_g){
 					found = false;
 					yes.forEach(function(name_on){
-						if (name_g === name_on){
+//console.log('comp: ' + name_g + ' = ' + name_on)
+						if (removeDiacritics(name_g.toLowerCase()) === removeDiacritics(name_on.toLowerCase())){
                                                         found = true
                                                 }
 					})
