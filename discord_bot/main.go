@@ -2,25 +2,42 @@ package main
 
 import (
 	"fmt"
+	"os"
+	"sort"
 	"strings"
 	"unicode"
-	"os"
 
 	"github.com/bwmarrin/discordgo"
 	"golang.org/x/text/transform"
-  "golang.org/x/text/unicode/norm"
+	"golang.org/x/text/unicode/norm"
 )
+
+type guildMemberWithAccentsRemoved struct {
+	GuildMember *discordgo.Member
+	Nickname    string
+}
 
 var (
 	commandPrefix string
 	botID         string
 )
 
-var prefixUsernameCheck = "~check_nicknames"
-var voiceChannelName = "Raid Chat"
+var prefixCheckNickname = "~check_nicknames"
+var prefixReloadNicknames = "~reload_nicknames"
+var prefixHelp = "~help"
+var voiceChannelName = map[string]string{
+	"187229035758223360": "General",   //Paranoids Gaming
+	"470921656865521665": "Raid Chat", //Life in the Math Lane
+}
+var allowedChannelsToSendCommands = map[string]string{
+	"187229035758223360": "187229035758223360", //Paranoids Gaming
+	"470921656865521665": "514964509954146308", //Life in the Math Lane
+}
+
 var t = transform.Chain(norm.NFD, transform.RemoveFunc(isMn), norm.NFC)
+
 func isMn(r rune) bool {
-    return unicode.Is(unicode.Mn, r)
+	return unicode.Is(unicode.Mn, r)
 }
 
 func main() {
@@ -38,7 +55,7 @@ func main() {
 			fmt.Println("Error attempting to set my status")
 		}
 		servers := discord.State.Guilds
-		fmt.Printf("SuperAwesomeOmegaTutorBot has started on %d servers", len(servers))
+		fmt.Printf("SuperAwesomeOmegaTutorBot has started on %d servers\n", len(servers))
 	})
 
 	err = discord.Open()
@@ -59,26 +76,65 @@ func errCheck(msg string, err error) {
 }
 
 func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate) {
+	printMessage := false
+
 	if message.Author.ID == botID || message.Author.Bot {
 		return
 	}
-	if strings.HasPrefix(message.Content, prefixUsernameCheck) {
+
+	if strings.Compare(allowedChannelsToSendCommands[message.GuildID], message.ChannelID) != 0 {
+		return
+	}
+
+	if strings.HasPrefix(message.Content, prefixCheckNickname) {
 		fmt.Printf("Message: %+v || From: %s\n", message.Message, message.Author)
-		checkUsernames(discord, message)
+		checkNicknames(discord, message)
+		printMessage = true
+	}
+
+	if strings.HasPrefix(message.Content, prefixReloadNicknames) {
+		reloadNicknames(discord, message.ChannelID)
+		printMessage = true
+	}
+
+	if strings.HasPrefix(message.Content, prefixHelp) {
+		showHelp(discord, message.ChannelID, voiceChannelName[message.GuildID])
+		printMessage = true
+	}
+
+	if printMessage {
+		fmt.Printf("Message: %+v || From: %s\n", message.Message, message.Author)
 	}
 
 }
 
-func checkUsernames(discord *discordgo.Session, message *discordgo.MessageCreate) {
+func checkNicknames(discord *discordgo.Session, message *discordgo.MessageCreate) {
 	usernamesToCheck := strings.Split(message.Content, " ")[1:]
-	channel := getChannelByName(discord, message.GuildID, voiceChannelName)
+	channel := getChannelByName(discord, message.GuildID, voiceChannelName[message.GuildID])
 	if channel == nil {
 		return
 	}
 	users := getUsersConnectedToVoiceChannel(discord, channel, message.GuildID)
-	nicknamesFound, nicknamesNotFound := compareUsersToNicknames(discord, users, usernamesToCheck, message.GuildID)
-	_, _ = discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Found nicknames: %+v", nicknamesFound))
-	_, _ = discord.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Not found nicknames: %+v", nicknamesNotFound))
+	nicknamesFound, nicknamesNotFound, discordMembersWhitoutCorrectNickname := compareUsersToNicknames(discord, users, usernamesToCheck, message.GuildID)
+
+	_, _ = discord.ChannelMessageSendEmbed(message.ChannelID, &discordgo.MessageEmbed{
+		Title: "Results of Nickname Check",
+		Color: 16642983,
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:  fmt.Sprintf("Found nicknames (%d/%d)", len(nicknamesFound), len(usernamesToCheck)),
+				Value: fmt.Sprintf("```\n%+v\n```", strings.Join(nicknamesFound, "\n")),
+			},
+			{
+				Name:  fmt.Sprintf("Not found nicknames (%d/%d)", len(nicknamesNotFound), len(usernamesToCheck)),
+				Value: fmt.Sprintf("```\n%+v\n```", strings.Join(nicknamesNotFound, "\n")),
+			},
+			{
+				Name:  fmt.Sprintf("Discord members whitout correct nickname (%d/%d)", len(discordMembersWhitoutCorrectNickname), len(usernamesToCheck)),
+				Value: fmt.Sprintf("```\n%+v\n```", strings.Join(discordMembersWhitoutCorrectNickname, "\n")),
+			},
+		},
+	})
 }
 
 func getChannelByName(discord *discordgo.Session, guildID string, channelName string) *discordgo.Channel {
@@ -109,44 +165,76 @@ func getUsersConnectedToVoiceChannel(discord *discordgo.Session, channel *discor
 	return users
 }
 
-func compareUsersToNicknames(discord *discordgo.Session, users []*discordgo.User, nicknames []string, guildID string) ([]string, []string) {
+func compareUsersToNicknames(discord *discordgo.Session, users []*discordgo.User, nicknames []string, guildID string) ([]string, []string, []string) {
 	var foundNicknames []string
+	var foundNicknamesWhitoutAccents []string
 	var notFoundNicknames []string
+	var discordMembersWhitoutCorrectNickname []string
 
-	//This is used to speedup the loop
-	var interestingGuildMembers []*discordgo.Member
-	guild, _ := discord.Guild(guildID)
-	for _, guildMember := range guild.Members {
-		if isDiscordUserInDiscordUserList(guildMember.User, users) && len(guildMember.Nick) > 0 {
-			if isDiscordUserInGuildMembersList(guildMember.User, interestingGuildMembers) {
-				continue
-			}
-			interestingGuildMembers = append(interestingGuildMembers, guildMember)
-		}
-	}
+	guildMembersWhitoutAccents := removeAccentsFromGuildMemberList(getGuildMembersFromUserList(discord, users, guildID))
 
 NICKNAME_LOOP:
 	for _, nickname := range nicknames {
 		nicknameDeDicatedCaseSensetive, _, _ := transform.String(t, nickname)
 		nicknameDeDicatedLowerCase := strings.ToLower(nicknameDeDicatedCaseSensetive)
-		for _, guildMember := range interestingGuildMembers {
-			guildMemberNickDeDicated, _, _ := transform.String(t, guildMember.Nick)
-			if strings.Compare(strings.ToLower(guildMemberNickDeDicated), nicknameDeDicatedLowerCase) == 0 {
+		for _, guildMemberWhitoutAccents := range guildMembersWhitoutAccents {
+			if strings.Compare(guildMemberWhitoutAccents.Nickname, nicknameDeDicatedLowerCase) == 0 {
 				foundNicknames = append(foundNicknames, nickname)
-				continue NICKNAME_LOOP
-			}
-		}
-		for _, user := range users {
-			userUsernameDeDicated, _, _ := transform.String(t, user.Username)
-			if strings.Compare(strings.ToLower(userUsernameDeDicated), strings.ToLower(nicknameDeDicatedLowerCase)) == 0 {
-				foundNicknames = append(foundNicknames, nickname)
+				foundNicknamesWhitoutAccents = append(foundNicknamesWhitoutAccents, nicknameDeDicatedLowerCase)
 				continue NICKNAME_LOOP
 			}
 		}
 		notFoundNicknames = append(notFoundNicknames, nickname)
 	}
 
-	return foundNicknames, notFoundNicknames
+	for _, guildMemberWhitoutAccents := range guildMembersWhitoutAccents {
+		if isGuildMemberWithAccentsInNicknamesWhitoutAccentsList(foundNicknamesWhitoutAccents, guildMemberWhitoutAccents) {
+			continue
+		}
+		discordMembersWhitoutCorrectNickname = append(discordMembersWhitoutCorrectNickname, guildMemberWhitoutAccents.Nickname)
+	}
+
+	sort.Strings(foundNicknames)
+	sort.Strings(notFoundNicknames)
+	sort.Strings(discordMembersWhitoutCorrectNickname)
+
+	return foundNicknames, notFoundNicknames, discordMembersWhitoutCorrectNickname
+}
+
+func removeAccentsFromGuildMemberList(guildMembers []*discordgo.Member) []guildMemberWithAccentsRemoved {
+	var guildMembersWithAccentsRemoved []guildMemberWithAccentsRemoved
+
+	for _, guildMember := range guildMembers {
+		if len(guildMember.Nick) > 0 {
+			guildMemberNickWhitoutAccents, _, _ := transform.String(t, guildMember.Nick)
+			guildMembersWithAccentsRemoved = append(guildMembersWithAccentsRemoved, guildMemberWithAccentsRemoved{
+				GuildMember: guildMember,
+				Nickname:    strings.ToLower(guildMemberNickWhitoutAccents),
+			})
+		} else {
+			usernameWhitoutAccents, _, _ := transform.String(t, guildMember.User.Username)
+			guildMembersWithAccentsRemoved = append(guildMembersWithAccentsRemoved, guildMemberWithAccentsRemoved{
+				GuildMember: guildMember,
+				Nickname:    strings.ToLower(usernameWhitoutAccents),
+			})
+		}
+	}
+
+	return guildMembersWithAccentsRemoved
+}
+
+func getGuildMembersFromUserList(discord *discordgo.Session, users []*discordgo.User, guildID string) []*discordgo.Member {
+	var foundGuildMembers []*discordgo.Member
+	guild, _ := discord.Guild(guildID)
+	for _, guildMember := range guild.Members {
+		if isDiscordUserInDiscordUserList(guildMember.User, users) {
+			if isDiscordUserInGuildMembersList(guildMember.User, foundGuildMembers) {
+				continue
+			}
+			foundGuildMembers = append(foundGuildMembers, guildMember)
+		}
+	}
+	return foundGuildMembers
 }
 
 func isDiscordUserInDiscordUserList(user *discordgo.User, users []*discordgo.User) bool {
@@ -165,4 +253,44 @@ func isDiscordUserInGuildMembersList(user *discordgo.User, guildMembers []*disco
 		}
 	}
 	return false
+}
+
+func isGuildMemberWithAccentsInNicknamesWhitoutAccentsList(nicknames []string, guildMemberWithAccentsRemoved guildMemberWithAccentsRemoved) bool {
+	for _, nickname := range nicknames {
+		if strings.Compare(nickname, guildMemberWithAccentsRemoved.Nickname) == 0 {
+			return true
+		}
+	}
+	return false
+}
+
+func reloadNicknames(discord *discordgo.Session, channelID string) {
+	discord.Close()
+	err := discord.Open()
+	errCheck("Error opening connection to Discord", err)
+	_, _ = discord.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+		Title: "Reload nicknames done",
+		Color: 16642983,
+	})
+}
+
+func showHelp(discord *discordgo.Session, channelID string, channelName string) {
+	_, _ = discord.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
+		Title: "Jeeves Bot Help",
+		Color: 16642983,
+		Fields: []*discordgo.MessageEmbedField{
+			{
+				Name:  "~check_nicknames <List of nicknames>",
+				Value: fmt.Sprintf("```\nChecks in %s voice chat if the nicknames are set correctly.\n```", channelName),
+			},
+			{
+				Name:  "~reload_nicknames",
+				Value: "```\nReloades the nicknames in the server\n```",
+			},
+			{
+				Name:  "~help",
+				Value: "```\nShows this help page\n```",
+			},
+		},
+	})
 }
