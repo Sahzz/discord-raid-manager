@@ -23,7 +23,7 @@ var (
 )
 
 var prefixCheckNickname = "~check_nicknames"
-var prefixReloadNicknames = "~reload_nicknames"
+
 var prefixHelp = "~help"
 var voiceChannelName = map[string]string{
 	"187229035758223360": "General",   //Paranoids Gaming
@@ -87,19 +87,14 @@ func commandHandler(discord *discordgo.Session, message *discordgo.MessageCreate
 	}
 
 	if strings.HasPrefix(message.Content, prefixCheckNickname) {
-		fmt.Printf("Message: %+v || From: %s\n", message.Message, message.Author)
+		reloadNicknames(discord)
 		checkNicknames(discord, message)
-		printMessage = true
-	}
-
-	if strings.HasPrefix(message.Content, prefixReloadNicknames) {
-		reloadNicknames(discord, message.ChannelID)
 		printMessage = true
 	}
 
 	if strings.HasPrefix(message.Content, prefixHelp) {
 		showHelp(discord, message.ChannelID, voiceChannelName[message.GuildID])
-		printMessage = true
+		//		printMessage = true
 	}
 
 	if printMessage {
@@ -264,14 +259,10 @@ func isGuildMemberWithAccentsInNicknamesWhitoutAccentsList(nicknames []string, g
 	return false
 }
 
-func reloadNicknames(discord *discordgo.Session, channelID string) {
+func reloadNicknames(discord *discordgo.Session) {
 	discord.Close()
 	err := discord.Open()
 	errCheck("Error opening connection to Discord", err)
-	_, _ = discord.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
-		Title: "Reload nicknames done",
-		Color: 16642983,
-	})
 }
 
 func showHelp(discord *discordgo.Session, channelID string, channelName string) {
@@ -282,10 +273,6 @@ func showHelp(discord *discordgo.Session, channelID string, channelName string) 
 			{
 				Name:  "~check_nicknames <List of nicknames>",
 				Value: fmt.Sprintf("```\nChecks in %s voice chat if the nicknames are set correctly.\n```", channelName),
-			},
-			{
-				Name:  "~reload_nicknames",
-				Value: "```\nReloades the nicknames in the server\n```",
 			},
 			{
 				Name:  "~help",
