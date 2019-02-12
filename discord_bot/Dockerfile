@@ -1,13 +1,14 @@
-FROM node:8
+FROM golang:alpine AS builder
 
-WORKDIR /usr/src/app
+RUN apk update && apk add --no-cache git
 
-COPY package*.json ./
-
-RUN npm install
-
+WORKDIR $GOPATH/src/app/
 COPY . .
 
-CMD [ "npm", "start" ]
+RUN go get -d -v
+RUN GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /go/bin/app
 
-
+FROM alpine
+COPY --from=builder /go/bin/app /go/bin/app
+RUN apk add ca-certificates
+ENTRYPOINT ["/go/bin/app"]

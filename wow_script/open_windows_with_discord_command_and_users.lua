@@ -1,12 +1,11 @@
-prefix="~uname_test"
-channel="Uldir"
+prefix="~check_nicknames"
 
 function KethoEditBox_Show(text)
 	if not KethoEditBox then
 		local f = CreateFrame("Frame", "KethoEditBox", UIParent, "DialogBoxFrame")
 		f:SetPoint("CENTER")
 		f:SetSize(600, 500)
-		
+
 		f:SetBackdrop({
 			bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
 			edgeFile = "Interface\\PVPFrame\\UI-Character-PVP-Highlight", -- this one is neat
@@ -14,7 +13,7 @@ function KethoEditBox_Show(text)
 			insets = { left = 8, right = 6, top = 8, bottom = 8 },
 		})
 		f:SetBackdropBorderColor(0, .44, .87, 0.5) -- darkblue
-		
+
 		-- Movable
 		f:SetMovable(true)
 		f:SetClampedToScreen(true)
@@ -24,14 +23,14 @@ function KethoEditBox_Show(text)
 			end
 		end)
 		f:SetScript("OnMouseUp", f.StopMovingOrSizing)
-		
+
 		-- ScrollFrame
 		local sf = CreateFrame("ScrollFrame", "KethoEditBoxScrollFrame", KethoEditBox, "UIPanelScrollFrameTemplate")
 		sf:SetPoint("LEFT", 16, 0)
 		sf:SetPoint("RIGHT", -32, 0)
 		sf:SetPoint("TOP", 0, -16)
 		sf:SetPoint("BOTTOM", KethoEditBoxButton, "TOP", 0, 0)
-		
+
 		-- EditBox
 		local eb = CreateFrame("EditBox", "KethoEditBoxEditBox", KethoEditBoxScrollFrame)
 		eb:SetSize(sf:GetSize())
@@ -40,19 +39,19 @@ function KethoEditBox_Show(text)
 		eb:SetFontObject("ChatFontNormal")
 		eb:SetScript("OnEscapePressed", function() f:Hide() end)
 		sf:SetScrollChild(eb)
-		
+
 		-- Resizable
 		f:SetResizable(true)
 		f:SetMinResize(150, 100)
-		
+
 		local rb = CreateFrame("Button", "KethoEditBoxResizeButton", KethoEditBox)
 		rb:SetPoint("BOTTOMRIGHT", -6, 7)
 		rb:SetSize(16, 16)
-		
+
 		rb:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Up")
 		rb:SetHighlightTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Highlight")
 		rb:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIM-SizeGrabber-Down")
-		
+
 		rb:SetScript("OnMouseDown", function(self, button)
 			if button == "LeftButton" then
 				f:StartSizing("BOTTOMRIGHT")
@@ -66,7 +65,7 @@ function KethoEditBox_Show(text)
 		end)
 		f:Show()
 	end
-	
+
 	if text then
 		KethoEditBoxEditBox:SetText(text)
 	end
@@ -85,4 +84,4 @@ for i = 1, 40 do
   table.insert(names, name);
  end;
 end
-KethoEditBox_Show(prefix.." "..channel.." "..table.concat(names," "));
+KethoEditBox_Show(prefix.." "..table.concat(names," "));
