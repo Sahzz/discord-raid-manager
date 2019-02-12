@@ -22,9 +22,13 @@ var (
 	botID         string
 )
 
-var prefixCheckNickname = "~check_nicknames"
+var colorGreen = 8311585
+//var colorYellow = 16312092
+var colorRed = 13632027
 
+var prefixCheckNickname = "~check_nicknames"
 var prefixHelp = "~help"
+
 var voiceChannelName = map[string]string{
 	"187229035758223360": "General",   //Paranoids Gaming
 	"470921656865521665": "Raid Chat", //Life in the Math Lane
@@ -55,7 +59,7 @@ func main() {
 			fmt.Println("Error attempting to set my status")
 		}
 		servers := discord.State.Guilds
-		fmt.Printf("SuperAwesomeOmegaTutorBot has started on %d servers\n", len(servers))
+		fmt.Printf("Nickname manager bot has started on %d servers\n", len(servers))
 	})
 
 	err = discord.Open()
@@ -112,9 +116,14 @@ func checkNicknames(discord *discordgo.Session, message *discordgo.MessageCreate
 	users := getUsersConnectedToVoiceChannel(discord, channel, message.GuildID)
 	nicknamesFound, nicknamesNotFound, discordMembersWhitoutCorrectNickname := compareUsersToNicknames(discord, users, usernamesToCheck, message.GuildID)
 
+	color := colorRed
+	if(len(nicknamesNotFound) == 0){
+		color = colorGreen
+	}
+
 	_, _ = discord.ChannelMessageSendEmbed(message.ChannelID, &discordgo.MessageEmbed{
 		Title: "Results of Nickname Check",
-		Color: 16642983,
+		Color: color,
 		Fields: []*discordgo.MessageEmbedField{
 			{
 				Name:  fmt.Sprintf("Found nicknames (%d/%d)", len(nicknamesFound), len(usernamesToCheck)),
@@ -170,12 +179,12 @@ func compareUsersToNicknames(discord *discordgo.Session, users []*discordgo.User
 
 NICKNAME_LOOP:
 	for _, nickname := range nicknames {
-		nicknameDeDicatedCaseSensetive, _, _ := transform.String(t, nickname)
-		nicknameDeDicatedLowerCase := strings.ToLower(nicknameDeDicatedCaseSensetive)
+		nicknameWhitoutAccentsCaseSensetive, _, _ := transform.String(t, nickname)
+		nicknameWhitoutAccentsLowerCase := strings.ToLower(nicknameWhitoutAccentsCaseSensetive)
 		for _, guildMemberWhitoutAccents := range guildMembersWhitoutAccents {
-			if strings.Compare(guildMemberWhitoutAccents.Nickname, nicknameDeDicatedLowerCase) == 0 {
+			if strings.Compare(guildMemberWhitoutAccents.Nickname, nicknameWhitoutAccentsLowerCase) == 0 {
 				foundNicknames = append(foundNicknames, nickname)
-				foundNicknamesWhitoutAccents = append(foundNicknamesWhitoutAccents, nicknameDeDicatedLowerCase)
+				foundNicknamesWhitoutAccents = append(foundNicknamesWhitoutAccents, nicknameWhitoutAccentsLowerCase)
 				continue NICKNAME_LOOP
 			}
 		}
@@ -264,6 +273,8 @@ func reloadNicknames(discord *discordgo.Session) {
 	err := discord.Open()
 	errCheck("Error opening connection to Discord", err)
 }
+
+//ToDo Add showCheckedNicknames
 
 func showHelp(discord *discordgo.Session, channelID string, channelName string) {
 	_, _ = discord.ChannelMessageSendEmbed(channelID, &discordgo.MessageEmbed{
