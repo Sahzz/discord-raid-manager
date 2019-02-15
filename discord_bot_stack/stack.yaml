@@ -7,15 +7,22 @@ Parameters:
 
 Resources:
 
-  DiscordBotServer:
-    Type: AWS::EC2::Instance
+  DiscordBotServerAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
+      LaunchConfigurationName: !Ref 'DiscordBotServerLaunchConfig'
+      MinSize: '1'
+      MaxSize: '1'
+      AvailabilityZones:
+        Fn::GetAZs: "eu-west-1"
+
+  DiscordBotServerLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      KeyName: !Ref 'KeyName'
+      ImageId: 'ami-01e584c365688abdc'
+      SecurityGroups: [!Ref 'DiscordBotServerSecurityGroup']
       InstanceType: 't2.micro'
-      SecurityGroups:
-      - Ref: DiscordBotServerSecurityGroup
-      KeyName:
-        Ref: KeyName
-      ImageId: 'ami-0fad7378adf284ce0'
 
   DiscordBotServerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -25,12 +32,4 @@ Resources:
       - IpProtocol: tcp
         FromPort: '22'
         ToPort: '22'
-        CidrIp: '0.0.0.0/0'
-
-Outputs:
-  PublicIP:
-    Description: Public IP address of the newly created EC2 instance
-    Value:
-      Fn::GetAtt:
-      - DiscordBotServer
-      - PublicIp
+        CidrIp: '192.168.0.0/30'

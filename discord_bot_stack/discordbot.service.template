@@ -1,0 +1,11 @@
+[Unit]
+Description=Discord bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Environment=DISCORD_API_TOKEN= < INSERT HERE DISCORD API KEY >
+ExecStart=/usr/local/bin/discord_bot
+
+[Install]
+WantedBy=multi-user.target
